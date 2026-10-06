@@ -1,0 +1,31 @@
+package main
+
+import (
+	"os"
+	"time"
+)
+
+// Config centraliza las variables globales y parámetros de entorno
+type Config struct {
+	BaseURL     string
+	AuthToken   string
+	HTTPTimeout time.Duration
+}
+
+func LoadConfig() Config {
+	baseURL := os.Getenv("SYPAGO_API_URL")
+	if baseURL == "" {
+		baseURL = "https://pruebas.api.sypago.net/api/v1/transaction/filter"
+	}
+
+	authToken := os.Getenv("SYPAGO_AUTH_TOKEN")
+	if authToken == "" {
+		authToken = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmZXpQcl9HSWhIZ05jOVc1cU5Td2FIQXBRMVRqeUlqbWtpY0d5V1hHUjFzIn0.eyJleHAiOjE4NTQzNzUxOTMsImlhdCI6MTc5MTMwMzE5MywianRpIjoiODE1ZjU3NGEtZDI5NC00ZDMxLTlmYjAtYTRlNjk1NWUwNzA2IiwiaXNzIjoiaHR0cHM6Ly9wcnVlYmFzLnN5cGFnby5uZXQ6ODA4MS9yZWFsbXMvc3lwYWdvIiwiYXVkIjpbImFwaS1zZXJ2aWNlcyIsImFjY291bnQiXSwic3ViIjoiNWVmZWMyYTYtNzZiMC00ZTc4LWI3ZDctNjM3MDBhYjI0MDdkIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoic3lwYWdvX2FwaWtleV9hZG1pbiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiLyoiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImRlZmF1bHQtcm9sZXMtc3lwYWdvIiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoicHJvZmlsZSBlbWFpbCBzeWFwcF9zY29wZSIsInR5cGVfb2ZfdXNlciI6IlVzZXIiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImNsaWVudEhvc3QiOiIxMC4xMDAuMC4xIiwidXNlcl9pZCI6IjcwNjZjZjZmLTVmNmYtNGQ1MS04NGYzLTI2ODQwMjliNGYzYSIsInBhcmVudF91c2VyX2lkIjoiNzA2NmNmNmYtNWY2Zi00ZDUxLTg0ZjMtMjY4NDAyOWI0ZjNhIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2VydmljZS1hY2NvdW50LXN5cGFnb19hcGlrZXlfYWRtaW4iLCJjbGllbnRBZGRyZXNzIjoiMTAuMTAwLjAuMSIsImNsaWVudF9pZCI6InN5cGFnb19hcGlrZXlfYWRtaW4ifQ.XMSAS2ZrxZ79LoTTNd9Baqqa5B3M4hcx_Z5XlY1pVCw1b5iiE3edVUk41o_QjqO8eFvrrgLT0YjCLDprhAR87XetMCMocMnaAbwayEQS0QrTmsZHTh0zXrPh3o5odmrInHLIHtTFkmBHjXNhSgwB48-5VixCBzJYb0dkYbJISK85Qiof_2RY-k_OfX191N5YIXOasBKtp7PkniEylRzxlDh4freh5b608uVEtjXoxMNdSHdrIjoCe1k2vIofaLNHoUnsRrHp8yzxdnTmK3WxrBD7GJH_-FdZ7B_vCJHKZnkIrIOm8L5_rtbqog9rMcT_GeiV-fwRGtrRXnsClgbLMQ"
+	}
+
+	return Config{
+		BaseURL:     baseURL,
+		AuthToken:   authToken,
+		HTTPTimeout: 10 * time.Second,
+	}
+}
