@@ -1,13 +1,6 @@
 ### Estructura de Suite
 
-```
-api-filter-tests/
-├── main_test.go      # Suite principal de pruebas
-├── config.go         # Constantes y cliente HTTP
-└── go.mod
-```
-
-### Definicion 
+### Definicion del consumo via CLI
 
 Este código cubre todas las combinaciones de campos (user_id, subuser_id, internal_id, transaction_id, ref_ibp, group_id, InitTransactionDate, operation_date, amount_type, amt, pay_amt, currency, rate, name, document_type, number, bank_code, account_type, account_number, status, rejected_code, operationSecret) y los operadores (eq, like, lte, gte, btwn): definidos en la documentacion: https://app.sypago.net/docs/api_filters
 
@@ -39,4 +32,132 @@ go test -v -run "TestTransactionFilter_AllVariants/amount" .
 
 # probar solo casos operadores LIKE
 go test -v -run "TestTransactionFilter_AllVariants/.*LIKE" .
+```
+
+### Composicion de la Suite
+```
+
+├── cmd/
+│   └── server/
+│       └── main.go                 # Punto de entrada HTTP 
+├── internal/
+│   ├── domain/                     # Entidades del negocio 
+│   │   ├── filter.go               # Structs de reglas y condiciones
+│   ├── service/                    # Reglas de negocio / Casos de uso
+│   │   ├── query_builder.go        # Transforma structs en la string "and(...)"
+│   │   └── test_runner.go          # Ejecuta los TestCases y retorna métricas
+│   ├── client/                     # Adaptador para el API cliente HTTP externo
+│   │   └── sypago_client.go        # Llama a https://pruebas.api.sypago.net
+│   └── handler/                    # Controladores HTTP
+│       ├── filter_handler.go       # Endpoints del builder
+│       └── test_handler.go         # Endpoints para correr suites
+└── config/
+    └── config.go                   # Carga de variables de entorno
+```
+Detalles para los gochos: 
+
+Dominio (internal/domain): Define los structs (petición de filtros, respuesta de transacción, resultado de test case). No importa nada externo.
+
+Cliente (internal/client): Se encarga de la conectividad HTTP pura contra SyPago.
+
+Servicio (internal/service): Lógica pura de Go. Construye la sintaxis de filtros y evalúa las reglas de los tests.
+
+Manejador (internal/handler): Adapta la entrada y salida de HTTP usando la librería Gin para entregársela limpia a React.
+
+
+
+### Dise~o del flujo desacoplado
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (React Dashboard)                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ (HTTP Request / JSON)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. HANDLERS (Gin Controllers)                                          │
+│    Reciben la petición HTTP, parsean el JSON y validan el formato.     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 2. SERVICES (Lógica de Negocio)                                        │
+│    - QueryBuilder: Transforma el JSON del Front en "and(status:eq:...)"│
+│    - TestRunner: Contiene la lista maestra de Test Cases y los evalúa. │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ 3. CLIENT / ADAPTER (Cliente HTTP Externo)                             │
+│    Ensambla la URL final y realiza la llamada real hacia SyPago.       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ (HTTP Request / Bearer Token)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        API EXTERNA (SyPago Staging)                     │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Flujo X: Flujo de querys customizados, el usuario puede construir los distintos filtros disponibles 
+
+Este flujo ocurre cuando el usuario entra al apartado de "Custom Request" desde el cliente X, selecciona varios desplegables (ej. Campo: amount, Operador: btwn, Valor: 10|100) y presiona el botón "Filtrar"
+
+
+```
+# Ejemplo estructural del json enviado desde el cliente al controlador http
+
+{
+  "logical_operator": "and",
+  "rules": [
+    { "field": "status", "operator": "eq", "value": "ACCP" },
+    { "field": "amount", "operator": "btwn", "value": "10|100" }
+  ]
+}
+```
+
+Gin Handler (filter_handler.go) recibe la petición y se la pasa al Service.
+
+QueryBuilder Service (query_builder.go) procesa el arreglo de reglas y construye el string codificado para el query param:
+and(status:eq:SUCCESS,amount:btwn:10|100)
+
+Client Adapter (sypago_client.go) toma la string, le pega la URL base ([https://pruebas.api.sypago.net/api/v1/transaction/filter?condition=](https://pruebas.api.sypago.net/api/v1/transaction/filter?condition=)...), agrega las cabeceras de autorización (Bearer TOKEN) y mide el tiempo de respuesta (latencia).
+
+Respuesta al Front: El Handler devuelve un JSON con la cadena generada, el tiempo de respuesta en ms, el código HTTP y el payload devuelto por SyPago para renderizarlo en la tabla.
+
+### Flujo Y: Flujo de querys precargados en la Suite por el papa
+
+Este flujo ocurre cuando el usuario entra a la pestaña "Test Cases" y hace clic en "Ejecutar Suite Completa" o "Probar grupo Amount".
+NOTA: Para esta primera version no contamos con una BD dedicada como SQL-Lite y los test-case renderizados en el cliente, estan precargados en el servicio
+
+React envía una petición: POST /api/v1/test-suites/run con el payload {"group": "amount"}.
+
+Gin Handler (test_handler.go) invoca al TestRunner Service.
+
+TestRunner Service (test_runner.go):
+
+Consulta el catalogo maestro de pruebas (GetTestCases()).
+
+Filtra los casos según el grupo solicitado.
+
+Itera sobre cada TestCase, ejecuta la llamada a SyPago a través del Client Adapter y captura la respuesta.
+
+Ejecuta la función de aserción/validación de cada caso (ej. comprobar que el arreglo de objetos devuelto cumpla con las condiciones esperadas o gestionar la respuesta 404 sin romper el flujo).
+
+Respuesta al Front: Devuelve una matriz de resultados lista para pintar:
+
+```
+{
+  "total": 1,
+  "results": [
+    {
+      "id": "AM-01",
+      "name": "amount - BTWN",
+      "condition": "and(amount:btwn:10|100)",
+      "status_code": 200,
+      "latency_ms": 142,
+      "passed": true,
+      "error": ""
+    }
+  ]
+}
 ```
