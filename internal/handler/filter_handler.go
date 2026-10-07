@@ -50,14 +50,14 @@ func (h *FilterHandler) RunTestSuite(c *gin.Context) {
 
 	var params service.SuiteParams
 	if err := c.ShouldBindJSON(&params); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Formato de payload de parámetros inválido o incompleto, consulte la documentacion para conocer el raw"})
+		c.JSON(http.StatusBadRequest, gin.H{"Error: Json mal formado": err.Error()})
 		return
 	}
 
 	results, err := h.runnerService.RunSuite(groupFilter, params)
 	if err != nil {
 		// Aquí respondemos al usuario cuando faltan los argumentos obligatorios o algo esta chimbo del lado de sypago
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusConflict, gin.H{
 			"error": err.Error(),
 		})
 		return
