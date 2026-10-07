@@ -74,7 +74,7 @@ func (s *QueryBuilderService) GetAvailableFields() []domain.FieldSchema {
 			Operators: []string{"eq", "ne"},
 		},
 		{
-			Field:     "amount",
+			Field:     "amt",
 			Label:     "Monto",
 			Type:      "number",
 			Operators: []string{"eq", "gte", "lte", "btwn"},

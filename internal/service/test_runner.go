@@ -115,37 +115,37 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 		//---- Test Case argument: amount ----//
 		{
 			ID:           "AMT-01",
-			Name:         "amount - EQ",
-			Group:        "amount",
-			Condition:    fmt.Sprintf("and(amount:eq:%s)", params.Amount),
+			Name:         "amt - EQ",
+			Group:        "amt",
+			Condition:    fmt.Sprintf("and(amt:eq:%s)", params.Amount),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "AMT-02",
-			Name:         "amount - LIKE",
-			Group:        "amount",
-			Condition:    fmt.Sprintf("and(amount:like:%s)", params.AmountLike),
+			Name:         "amt - LIKE",
+			Group:        "amt",
+			Condition:    fmt.Sprintf("and(amt:like:%s)", params.AmountLike),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "AMT-03", // MENOR O IGUAL QUE
-			Name:         "amount - LTE",
-			Group:        "amount",
-			Condition:    fmt.Sprintf("and(amount:lte:%s)", params.AmountLTE),
+			Name:         "amt - LTE",
+			Group:        "amt",
+			Condition:    fmt.Sprintf("and(amt:lte:%s)", params.AmountLTE),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "AMT-04", // MAYOR O IGUAL QUE
-			Name:         "amount - GTE",
-			Group:        "amount",
-			Condition:    fmt.Sprintf("and(amount:gte:%s)", params.AmountGTE),
+			Name:         "amt - GTE",
+			Group:        "amt",
+			Condition:    fmt.Sprintf("and(amt:gte:%s)", params.AmountGTE),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "AMT-05", // ENTRE
-			Name:         "amount - BTWN",
-			Group:        "amount",
-			Condition:    fmt.Sprintf("and(amount:btwn:%s)", params.AmountBtwn),
+			Name:         "amt - BTWN",
+			Group:        "amt",
+			Condition:    fmt.Sprintf("and(amt:btwn:%s)", params.AmountBtwn),
 			ExpectedCode: http.StatusOK,
 		},
 	}

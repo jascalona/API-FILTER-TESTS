@@ -34,25 +34,24 @@ go test -v -run "TestTransactionFilter_AllVariants/amount" .
 go test -v -run "TestTransactionFilter_AllVariants/.*LIKE" .
 ```
 
-### Composicion de la Suite
+### Composicion de la Suite (Monorepo)
 ```
-
+api-filter-tests/
 ├── cmd/
-│   └── server/
-│       └── main.go                 # Punto de entrada HTTP 
+│   └── main.go                 # Punto de entrada principal
 ├── internal/
-│   ├── domain/                     # Entidades del negocio 
-│   │   ├── filter.go               # Structs de reglas y condiciones
-│   ├── service/                    # Reglas de negocio / Casos de uso
-│   │   ├── query_builder.go        # Transforma structs en la string "and(...)"
-│   │   └── test_runner.go          # Ejecuta los TestCases y retorna métricas
-│   ├── client/                     # Adaptador para el API cliente HTTP externo
-│   │   └── sypago_client.go        # Llama a https://pruebas.api.sypago.net
-│   └── handler/                    # Controladores HTTP
-│       ├── filter_handler.go       # Endpoints del builder
-│       └── test_handler.go         # Endpoints para correr suites
-└── config/
-    └── config.go                   # Carga de variables de entorno
+│   ├── client/
+│   ├── handler/
+│   ├── model/
+│   └── service/
+├── frontend/                   # Repositorio/Código de React (Vite / CRA)
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── dist/                   # Salida del build estático de React
+├── .env
+├── go.mod
+└── go.sum
 ```
 Detalles para los gochos: 
 
@@ -160,4 +159,26 @@ Respuesta al Front: Devuelve una matriz de resultados lista para pintar:
     }
   ]
 }
+```
+### Consumo de TestRunner (Catalogo de test-case (Suite))
+
+Para realizar el consumo de este servicio, atravez de un cliente http (react, postman, etc...) es importante pasar el payload 
+NOTA: El token viaja directamente en el servicio, solo asegurese de cargarlo en el .env
+```
+curl -X POST http://localhost:8050/api/v1/test-suites/run?group=all \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "A60427ED515C",
+    "tx_like": "A604",
+    "status": "ACCP",
+    "rejected_code": "TKCM",
+    "rj_code_like": "MD",
+    "ref_ibp": "02301098",
+    "ref_ibp_like": "1098",
+    "amount": "1",
+    "amount_like": "1000",
+    "amount_lte": "1000",
+    "amount_gte": "1000",
+    "amount_btwn": "10|100"
+  }'
 ```

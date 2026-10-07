@@ -1,59 +1,44 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
+	"os/exec"
+	"runtime"
 
 	"api-filter-tests/config"
 	"api-filter-tests/internal/client"
 	"api-filter-tests/internal/handler"
 	"api-filter-tests/internal/service"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// Middleware CORS básico para permitir peticiones desde el frontend (React)
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
-	}
-}
+// Directiva de Go para incrustar el contenido de frontend/dist dentro del ejecutable
+var staticFiles embed.FS
 
 func main() {
-	// 1. Cargar configuración desde .env o variables de entorno
 	cfg := config.LoadConfig()
 
-	// 2. Inicializar cliente HTTP de SyPago
 	sypagoClient := client.NewSypagoClient(cfg)
-
-	// 3. Inicializar Servicios
 	builderService := service.NewQueryBuilderService()
 	runnerService := service.NewTestRunnerService(sypagoClient)
-
-	// 4. Inicializar Handler
 	filterHandler := handler.NewFilterHandler(builderService, runnerService)
 
-	// 5. Configurar Gin Router
 	r := gin.Default()
-	r.Use(corsMiddleware())
 
-	// Healthcheck
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5174", "http://localhost:5173"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowCredentials: true,
+	}))
 
-	// Agrupación de rutas API v1
+	// 1. Rutas de la API Backend
 	v1 := r.Group("/api/v1")
 	{
 		v1.GET("/fields", filterHandler.GetFields)
@@ -61,10 +46,48 @@ func main() {
 		v1.POST("/test-suites/run", filterHandler.RunTestSuite)
 	}
 
-	// 6. Iniciar Servidor
+	// 2. Servir los archivos estáticos de React incrustados
+	subFS, err := fs.Sub(staticFiles, "frontend/dist")
+	if err != nil {
+		log.Fatalf("Error al obtener subdirectorio de estáticos: %v", err)
+	}
+
+	// Servir el SPA (Single Page Application)
+	r.NoRoute(func(c *gin.Context) {
+		// Si la petición arranca con /api, dejar que devuelva 404 estándar
+		if len(c.Request.URL.Path) >= 4 && c.Request.URL.Path[:4] == "/api" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Endpoint no encontrado"})
+			return
+		}
+		// Para cualquier otra ruta, servir index.html de React
+		http.FileServer(http.FS(subFS)).ServeHTTP(c.Writer, c.Request)
+	})
+
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf(" Servidor iniciado exitosamente en http://localhost%s", addr)
+	url := fmt.Sprintf("http://localhost%s", addr)
+
+	log.Printf("Servidor iniciado en %s", url)
+
+	// Opcional: Abrir automáticamente el navegador al ejecutar el .exe
+	openBrowser(url)
+
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)
+	}
+}
+
+// Función auxiliar para abrir el navegador predeterminado automáticamente
+func openBrowser(url string) {
+	var err error
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	}
+	if err != nil {
+		log.Printf("No se pudo abrir el navegador automáticamente: %v", err)
 	}
 }
