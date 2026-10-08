@@ -37,17 +37,26 @@ export interface Rule {
   }
 
   export interface SuiteParams {
+    transaction_id?: string;
+    tx_like?: string;
+    status?: string;
+    rejected_code?: string;
+    rj_code_like?: string;
+    ref_ibp?: string;
+    ref_ibp_like?: string;
+    amount?: string;
+    amount_like?: string;
+    amount_lte?: string;
+    amount_gte?: string;
+    amount_btwn?: string;
+    user_id?: string;
+    subuser_id?: string;
+    internal_id?: string;
     group_id?: string;
-    transaction_id: string;
-    tx_like: string;
-    status: string;
-    rejected_code: string;
-    rj_code_like: string;
-    ref_ibp: string;
-    ref_ibp_like: string;
-    amount: string;
-    amount_like: string;
-    amount_lte: string;
-    amount_gte: string;
-    amount_btwn: string;
-  }
+    init_transaction_date?: string;
+    operation_date?: string;
+    date_comparation?: string;
+    number?: string;
+    bank_code?: string;
+    account_number?: string;
+}

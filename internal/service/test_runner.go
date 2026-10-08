@@ -40,6 +40,9 @@ type SuiteParams struct {
 	InitTransactionDate string `json:"init_transaction_date"`
 	OperationDate       string `json:"operation_date"`
 	DateComparation     string `json:"date_comparation"`
+	NumberDocumentR     string `json:"number"`
+	BankCode            string `json:"bank_code"`
+	AccountNumber       string `json:"account_number"`
 }
 
 // ValidateParams verifica que todos los campos requeridos estén presentes
@@ -49,7 +52,8 @@ func (p *SuiteParams) ValidateParams() error {
 		p.RefIBPLike == "" || p.Amount == "" || p.AmountLike == "" ||
 		p.AmountLTE == "" || p.AmountGTE == "" || p.AmountBtwn == "" ||
 		p.UserID == "" || p.SubUserID == "" || p.InternalID == "" || p.GroupID == "" ||
-		p.InitTransactionDate == "" || p.OperationDate == "" || p.DateComparation == "" {
+		p.InitTransactionDate == "" || p.OperationDate == "" || p.DateComparation == "" ||
+		p.NumberDocumentR == "" || p.BankCode == "" || p.AccountNumber == "" {
 		return fmt.Errorf("faltan campos en el payload para aplicar los filtros en la suite de pruebas")
 	}
 	return nil
@@ -159,7 +163,7 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 			Condition:    fmt.Sprintf("and(amt:btwn:%s)", params.AmountBtwn),
 			ExpectedCode: http.StatusOK,
 		},
-		//---- Test Case argument: user_id ----//
+		//---- Test Case argument: subuser_id y user_id ----// ajustar despues
 		{
 			ID:           "UserId-01", //
 			Name:         "user_id - EQ",
@@ -167,7 +171,6 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 			Condition:    fmt.Sprintf("and(user_id:eq:%s)", params.UserID),
 			ExpectedCode: http.StatusOK,
 		},
-		//---- Test Case argument: subuser_id  ----//
 		{
 			ID:           "SubUserId-01", //
 			Name:         "subuser_id - ",
@@ -199,21 +202,21 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 			ID:           "InitTransactionDate-01", //
 			Name:         "init_transaction_date - EQ",
 			Group:        "date_filter",
-			Condition:    fmt.Sprintf("and(init_transaction_date:eq:%s)", params.InitTransactionDate),
+			Condition:    fmt.Sprintf("and(InitTransactionDate:eq:%s)", params.InitTransactionDate),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "InitTransactionDate-02",      //
 			Name:         "init_transaction_date - LTE", //Menor que la fechar cargada
 			Group:        "date_filter",
-			Condition:    fmt.Sprintf("and(init_transaction_date:lte:%s)", params.InitTransactionDate),
+			Condition:    fmt.Sprintf("and(InitTransactionDate:lte:%s)", params.InitTransactionDate),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "InitTransactionDate-03",      //
 			Name:         "init_transaction_date - GTE", //Mayor que la fechar cargada
 			Group:        "date_filter",
-			Condition:    fmt.Sprintf("and(init_transaction_date:gte:%s)", params.InitTransactionDate),
+			Condition:    fmt.Sprintf("and(InitTransactionDate:gte:%s)", params.InitTransactionDate),
 			ExpectedCode: http.StatusOK,
 		},
 		{
@@ -226,22 +229,46 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 		{
 			ID:           "OperationDate-02",
 			Name:         "operation_date - LTE", //Menor que la fechar cargada
-			Group:        "operation_date",
+			Group:        "date_filter",
 			Condition:    fmt.Sprintf("and(operation_date:lte:%s)", params.OperationDate),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "OperationDate-03",
 			Name:         "operation_date - GTE", //Mayor que la fechar cargada
-			Group:        "operation_date",
+			Group:        "date_filter",
 			Condition:    fmt.Sprintf("and(operation_date:gte:%s)", params.OperationDate),
 			ExpectedCode: http.StatusOK,
 		},
 		{
 			ID:           "Filter-Date-Between-04",
-			Name:         "operation_date - BTWN", //filtro entre fechas
-			Group:        "operation_date",
-			Condition:    fmt.Sprintf("and(operation_date:btwn:%s)", params.DateComparation),
+			Name:         "date_comparation - BTWN", //filtro entre fechas
+			Group:        "date_filter",
+			Condition:    fmt.Sprintf("and(date_comparation:btwn:%s)", params.DateComparation),
+			ExpectedCode: http.StatusOK,
+		},
+		//---- Test Case argument: number ----//
+		{
+			ID:           "Number-01", // docuemnto usuario receptor
+			Name:         "number - EQ",
+			Group:        "number",
+			Condition:    fmt.Sprintf("and(number:eq:%s)", params.NumberDocumentR),
+			ExpectedCode: http.StatusOK,
+		},
+		//---- Test Case argument: bank_code ----//
+		{
+			ID:           "BankCode-01", // codigo de banco
+			Name:         "bank_code - EQ",
+			Group:        "bank_code",
+			Condition:    fmt.Sprintf("and(bank_code:eq:%s)", params.BankCode),
+			ExpectedCode: http.StatusOK,
+		},
+		//---- Test Case argument: account_number ----//
+		{
+			ID:           "AccountNumber-01", // numero de cuenta o tlf receptor
+			Name:         "account_number - EQ",
+			Group:        "account_number",
+			Condition:    fmt.Sprintf("and(account_number:eq:%s)", params.AccountNumber),
 			ExpectedCode: http.StatusOK,
 		},
 	}

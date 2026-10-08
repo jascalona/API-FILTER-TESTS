@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { TestGroup, TestSuiteResponse, TestCaseResult, SuiteParams } from '../api/filterApi';
+import type { TestGroup, TestSuiteResponse, SuiteParams } from '../api/filterApi';
 
 // icons Material UI
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const PRELOADED_GROUPS: TestGroup[] = [
-    { id: 'all', name: 'Suite Completa', description: 'Ejecuta todas las pruebas unitarias e integración del catálogo completo', count: 12 },
+    { id: 'all', name: 'Suite Completa', description: 'Ejecuta todas las pruebas unitarias e integración del catálogo completo', count: 17 },
     { id: 'transaction_id', name: 'Grupo Transaction ID', description: 'Pruebas sobre transaction_id exacto y patrón tx_like', count: 3 },
     { id: 'status', name: 'Grupo Status', description: 'Certificación de códigos de estado (ACCP, REJT, PEND)', count: 3 },
     { id: 'rejected_code', name: 'Grupo Rejected Code', description: 'Pruebas sobre códigos de rechazo exactos y patrones rj_code_like', count: 3 },
     { id: 'ref_ibp', name: 'Grupo Ref IBP', description: 'Filtros por referencia IBP exacta y patrón ref_ibp_like', count: 3 },
     { id: 'amt', name: 'Grupo Montos (AMT)', description: 'Validación de operadores eq, btwn, lte, gte sobre montos', count: 4 },
+    { id: 'users', name: 'Grupo Usuarios', description: 'Pruebas agrupadas sobre user_id y subuser_id', count: 2 },
+    { id: 'date_filter', name: 'Grupo Fechas', description: 'Validación sobre operation_date, date_comparation e init_transaction_date', count: 3 },
 ];
 
 const DEFAULT_PARAMS: SuiteParams = {
@@ -27,6 +29,16 @@ const DEFAULT_PARAMS: SuiteParams = {
     amount_lte: '1000',
     amount_gte: '1000',
     amount_btwn: '10|100',
+    user_id: '7066cf6f-5f6f-4d51-84f3-2684029b4f3a',
+    subuser_id: '54c6ea4e-a373-4778-acab-c771bba703de',
+    internal_id: 'ABC8AD2A7777',
+    group_id: '5F444F803A86',
+    init_transaction_date: '2026-10-05 20:39:18',
+    operation_date: '2026-10-08',
+    date_comparation: '2026-08-05 20:39:18|2026-10-10 20:39:18.112',
+    number: '30221960',
+    bank_code: '0108',
+    account_number: '04129854529'
 };
 
 export const SuiteRunnerView: React.FC = () => {
@@ -269,7 +281,7 @@ export const SuiteRunnerView: React.FC = () => {
             {/* MODAL CON PORTAL */}
             {isModalOpen && selectedGroup && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
 
                         {/* Header del Modal */}
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -288,59 +300,138 @@ export const SuiteRunnerView: React.FC = () => {
                         </div>
 
                         {/* Formulario */}
-                        <form onSubmit={handleRunSuite} className="p-6 space-y-4 overflow-y-auto">
-                            <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-100 text-[11px] text-purple-800 mb-2">
+                        <form onSubmit={handleRunSuite} className="p-6 space-y-5 overflow-y-auto">
+                            <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-100 text-[11px] text-purple-800">
                                 Se enviará <code className="font-bold font-mono text-purple-900">"group": "{selectedGroup.id}"</code> en el payload JSON hacia la API.
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">transaction_id</label>
-                                    <input type="text" name="transaction_id" value={formData.transaction_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            {/* Sección 1: Identificadores y Transacciones */}
+                            <div className="space-y-2">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Identificadores / Transacción</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">transaction_id</label>
+                                        <input type="text" name="transaction_id" value={formData.transaction_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">tx_like</label>
+                                        <input type="text" name="tx_like" value={formData.tx_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">internal_id</label>
+                                        <input type="text" name="internal_id" value={formData.internal_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">group_id</label>
+                                        <input type="text" name="group_id" value={formData.group_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">ref_ibp</label>
+                                        <input type="text" name="ref_ibp" value={formData.ref_ibp} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">ref_ibp_like</label>
+                                        <input type="text" name="ref_ibp_like" value={formData.ref_ibp_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">tx_like</label>
-                                    <input type="text" name="tx_like" value={formData.tx_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            </div>
+
+                            {/* Sección 2: Grupo de Usuarios */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Grupo Usuarios</h4>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">user_id</label>
+                                        <input type="text" name="user_id" value={formData.user_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">subuser_id</label>
+                                        <input type="text" name="subuser_id" value={formData.subuser_id} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">status</label>
-                                    <input type="text" name="status" value={formData.status} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            </div>
+
+                            {/* Sección 3: Grupo de Fechas */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Grupo Fechas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">init_transaction_date</label>
+                                        <input type="text" name="init_transaction_date" value={formData.init_transaction_date} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">operation_date</label>
+                                        <input type="text" name="operation_date" value={formData.operation_date} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">date_comparation</label>
+                                        <input type="text" name="date_comparation" value={formData.date_comparation} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">rejected_code</label>
-                                    <input type="text" name="rejected_code" value={formData.rejected_code} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            </div>
+
+                            {/* Sección 4: Estados y Rechazos */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Estado y Código Rechazo</h4>
+                                <div className="grid grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">status</label>
+                                        <input type="text" name="status" value={formData.status} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">rejected_code</label>
+                                        <input type="text" name="rejected_code" value={formData.rejected_code} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">rj_code_like</label>
+                                        <input type="text" name="rj_code_like" value={formData.rj_code_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">rj_code_like</label>
-                                    <input type="text" name="rj_code_like" value={formData.rj_code_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            </div>
+
+                            {/* Sección 5: Montos */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Montos (AMT)</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">amount</label>
+                                        <input type="text" name="amount" value={formData.amount} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">amount_like</label>
+                                        <input type="text" name="amount_like" value={formData.amount_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">amount_lte</label>
+                                        <input type="text" name="amount_lte" value={formData.amount_lte} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">amount_gte</label>
+                                        <input type="text" name="amount_gte" value={formData.amount_gte} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">amount_btwn</label>
+                                        <input type="text" name="amount_btwn" value={formData.amount_btwn} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">ref_ibp</label>
-                                    <input type="text" name="ref_ibp" value={formData.ref_ibp} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">ref_ibp_like</label>
-                                    <input type="text" name="ref_ibp_like" value={formData.ref_ibp_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">amount</label>
-                                    <input type="text" name="amount" value={formData.amount} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">amount_like</label>
-                                    <input type="text" name="amount_like" value={formData.amount_like} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">amount_lte</label>
-                                    <input type="text" name="amount_lte" value={formData.amount_lte} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">amount_gte</label>
-                                    <input type="text" name="amount_gte" value={formData.amount_gte} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-slate-700 mb-1">amount_btwn</label>
-                                    <input type="text" name="amount_btwn" value={formData.amount_btwn} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                            </div>
+
+                            {/* Sección 6: Datos Bancarios / Teléfono */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <h4 className="text-[11px] font-bold uppercase text-purple-700 tracking-wider">Datos Bancarios y Teléfono</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">number</label>
+                                        <input type="text" name="number" value={formData.number} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">bank_code</label>
+                                        <input type="text" name="bank_code" value={formData.bank_code} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-slate-700 mb-1">account_number</label>
+                                        <input type="text" name="account_number" value={formData.account_number} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -372,16 +463,17 @@ export const SuiteRunnerView: React.FC = () => {
                         <div>
                             <h3 className="text-sm font-bold text-slate-800">Resultados de la Ejecución</h3>
                             <p className="text-xs text-slate-500">
-                                Se procesaron {suiteResponse.total} casos de prueba para el grupo. Haz clic en una fila para ver el detalle.
+                                Se procesaron {suiteResponse.total ?? 0} casos de prueba para el grupo. Haz clic en una fila para ver el detalle.
                             </p>
                         </div>
 
+                        {/* Protección agregada aquí con (suiteResponse.results || []) */}
                         <div className="flex gap-2">
                             <span className="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-lg border border-emerald-200 font-bold">
-                                Exitosos: {suiteResponse.results.filter((r) => r.passed).length}
+                                Exitosos: {(suiteResponse.results || []).filter((r) => r.passed).length}
                             </span>
                             <span className="bg-rose-50 text-rose-700 text-xs px-2.5 py-1 rounded-lg border border-rose-200 font-bold">
-                                Fallidos: {suiteResponse.results.filter((r) => !r.passed).length}
+                                Fallidos: {(suiteResponse.results || []).filter((r) => !r.passed).length}
                             </span>
                         </div>
                     </div>
@@ -400,61 +492,70 @@ export const SuiteRunnerView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {suiteResponse.results.map((item: any) => {
-                                    const isExpanded = expandedRowId === item.id;
-                                    const caseName = item.test_case_name || item.name;
+                                {/* Validación de existencia de resultados para evitar pantalla en blanco */}
+                                {(suiteResponse.results || []).length > 0 ? (
+                                    (suiteResponse.results || []).map((item: any) => {
+                                        const isExpanded = expandedRowId === item.id;
+                                        const caseName = item.test_case_name || item.name;
 
-                                    return (
-                                        <React.Fragment key={item.id}>
-                                            <tr
-                                                onClick={() => toggleRow(item.id)}
-                                                className={`cursor-pointer transition-colors ${
-                                                    isExpanded ? 'bg-purple-50/50' : 'hover:bg-slate-50/80'
-                                                }`}
-                                            >
-                                                <td className="p-3 text-center text-slate-400 font-bold">
-                                                    {isExpanded ? '▼' : '►'}
-                                                </td>
-                                                <td className="p-3 font-mono font-bold text-slate-700">{item.id}</td>
-                                                <td className="p-3 font-semibold text-slate-800">{caseName}</td>
-                                                <td className="p-3 font-mono text-purple-700">{item.condition}</td>
-                                                <td className="p-3 font-mono font-bold">{item.status_code}</td>
-                                                <td className="p-3 text-slate-600">{item.latency_ms} ms</td>
-                                                <td className="p-3">
-                                                    {item.passed ? (
-                                                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-emerald-200">
-                                                            ✓ PASSED
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-rose-200" title={item.error}>
-                                                            ✕ FAILED
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-
-                                            {/* Vista desplegable adaptada */}
-                                            {isExpanded && (
-                                                <tr className="bg-slate-50/60">
-                                                    <td colSpan={7} className="p-4 border-b border-slate-200">
-                                                        <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-inner">
-                                                            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                                                <h4 className="text-xs font-bold text-slate-800">
-                                                                    Detalles de Respuesta para: <span className="text-purple-600">{caseName} ({item.id})</span>
-                                                                </h4>
-                                                                <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                                                    Expected: {item.expected_code || 200} | Received: {item.status_code}
-                                                                </span>
-                                                            </div>
-
-                                                            {renderRawResponse(item.raw_response)}
-                                                        </div>
+                                        return (
+                                            <React.Fragment key={item.id}>
+                                                <tr
+                                                    onClick={() => toggleRow(item.id)}
+                                                    className={`cursor-pointer transition-colors ${
+                                                        isExpanded ? 'bg-purple-50/50' : 'hover:bg-slate-50/80'
+                                                    }`}
+                                                >
+                                                    <td className="p-3 text-center text-slate-400 font-bold">
+                                                        {isExpanded ? '▼' : '►'}
+                                                    </td>
+                                                    <td className="p-3 font-mono font-bold text-slate-700">{item.id}</td>
+                                                    <td className="p-3 font-semibold text-slate-800">{caseName}</td>
+                                                    <td className="p-3 font-mono text-purple-700">{item.condition}</td>
+                                                    <td className="p-3 font-mono font-bold">{item.status_code}</td>
+                                                    <td className="p-3 text-slate-600">{item.latency_ms} ms</td>
+                                                    <td className="p-3">
+                                                        {item.passed ? (
+                                                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-emerald-200">
+                                                                ✓ PASSED
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 font-bold text-[10px] px-2 py-0.5 rounded-md border border-rose-200" title={item.error}>
+                                                                ✕ FAILED
+                                                            </span>
+                                                        )}
                                                     </td>
                                                 </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
+
+                                                {/* Detalle desplegable */}
+                                                {isExpanded && (
+                                                    <tr className="bg-slate-50/60">
+                                                        <td colSpan={7} className="p-4 border-b border-slate-200">
+                                                            <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-inner">
+                                                                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                                                                    <h4 className="text-xs font-bold text-slate-800">
+                                                                        Detalles de Respuesta para: <span className="text-purple-600">{caseName} ({item.id})</span>
+                                                                    </h4>
+                                                                    <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                                                                        Expected: {item.expected_code || 200} | Received: {item.status_code}
+                                                                    </span>
+                                                                </div>
+
+                                                                {renderRawResponse(item.raw_response)}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={7} className="p-4 text-center text-slate-400 text-xs italic">
+                                            No se devolvieron resultados dentro del arreglo `results` para este grupo de pruebas.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
