@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"api-filter-tests/internal/domain"
@@ -50,13 +51,18 @@ func (h *FilterHandler) RunTestSuite(c *gin.Context) {
 
 	var params service.SuiteParams
 	if err := c.ShouldBindJSON(&params); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"Error: Json mal formado": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Json mal formado", "details": err.Error()})
 		return
 	}
 
 	results, err := h.runnerService.RunSuite(groupFilter, params)
 	if err != nil {
-		// Aquí respondemos al usuario cuando faltan los argumentos obligatorios o algo esta chimbo del lado de sypago
+		var errorServExternal *domain.MapperError
+		if errors.As(err, &errorServExternal) {
+			c.JSON(errorServExternal.StatusCode, errorServExternal.Message)
+			return
+		}
+
 		c.JSON(http.StatusConflict, gin.H{
 			"error": err.Error(),
 		})

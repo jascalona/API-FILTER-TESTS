@@ -7,6 +7,8 @@ import (
 
 	"api-filter-tests/internal/client"
 	"api-filter-tests/internal/domain"
+
+	"github.com/gin-gonic/gin"
 )
 
 type TestCaseDefinition struct {
@@ -260,6 +262,7 @@ func (s *TestRunnerService) ExecuteCustomQuery(condition string) domain.QueryExe
 		resp.StatusCode = http.StatusInternalServerError
 		resp.RawResponse = json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
 	}
+
 	return resp
 }
 
@@ -278,6 +281,23 @@ func (s *TestRunnerService) RunSuite(groupFilter string, params SuiteParams) ([]
 		}
 
 		statusCode, rawBody, latency, err := s.sypagoClient.FetchTransactions(tc.Condition)
+
+		// Atajamos una cuchufleta en en caso de que el servicio chille
+		if err != nil || statusCode != tc.ExpectedCode {
+			var respMsg interface{} = rawBody
+			if !json.Valid(rawBody) {
+				respMsg = gin.H{
+					"error":   "El servicio externo devolvió una respuesta no válida (HTML/Texto)",
+					"details": string(rawBody),
+				}
+			}
+
+			// RETORNAMOS EL ERROR PARA QUE EL HANDLER LO PUEDA CAPTURAR
+			return nil, &domain.MapperError{
+				StatusCode: statusCode,
+				Message:    respMsg,
+			}
+		}
 
 		result := domain.TestResult{
 			ID:           tc.ID,
