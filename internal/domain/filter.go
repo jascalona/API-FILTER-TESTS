@@ -36,11 +36,3 @@ type TestResult struct {
 	Error        string          `json:"error,omitempty"`
 	RawResponse  json.RawMessage `json:"raw_response,omitempty"` // Para inspección visual en caso de fallos
 }
-
-// FieldSchema define los metadatos de los campos filtrables para construir la interfaz en React
-type FieldSchema struct {
-	Field     string   `json:"field"`
-	Label     string   `json:"label"`
-	Type      string   `json:"type"` // "string", "number"
-	Operators []string `json:"operators"`
-}

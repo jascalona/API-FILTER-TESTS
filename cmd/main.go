@@ -41,7 +41,7 @@ func main() {
 	// 1. Rutas de la API Backend
 	v1 := r.Group("/api/v1")
 	{
-		v1.GET("/fields", filterHandler.GetFields)
+		v1.POST("/custom-filter", filterHandler.CustomFilterHandler)
 		v1.POST("/query/execute", filterHandler.ExecuteQuery)
 		v1.POST("/test-suites/run", filterHandler.RunTestSuite)
 	}

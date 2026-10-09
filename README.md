@@ -97,27 +97,70 @@ Manejador (internal/handler): Adapta la entrada y salida de HTTP usando la libre
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Flujo X: Flujo de querys customizados, el usuario puede construir los distintos filtros disponibles 
+### Flujo X: Constructor Dinámico de Consultas Personalizadas (Custom Request Builder)
 
-Este flujo ocurre cuando el usuario entra al apartado de "Custom Request" desde el cliente X, selecciona varios desplegables (ej. Campo: amount, Operador: btwn, Valor: 10|100) y presiona el botón "Filtrar"
+Permite al usuario construir filtros condicionales complejos y anidados mediante una interfaz gráfica interactiva en React. La aplicación traduce la estructura de árbol JSON enviada desde la web en la sintaxis funcional de filtrado requerida por la API de SyPago (and(...) / or(...)).
 
+## Payload de Entrada (POST /api/v1/custom-filter)
+El frontend construye un árbol dinámico de reglas y subgrupos. La petición se envía mediante un método POST conteniendo la estructura inmutable del árbol:
 
 ```
-# Ejemplo estructural del json enviado desde el cliente al controlador http
+# Ejemplo estructural del json enviado filtro con reglas simples
+
+POST | http://localhost:8050/api/v1/custom-filter
+# NOTA: Puede agregar "N" cantidad de reglas como desee para anidar los query 
 
 {
-  "logical_operator": "and",
-  "rules": [
-    { "field": "status", "operator": "eq", "value": "ACCP" },
-    { "field": "amount", "operator": "btwn", "value": "10|100" }
+  "operator": "and",
+  "children": [
+    {
+      "field": "status",
+      "op": "eq",
+      "value": "ACCP"
+    },
+    {
+      "field": "amt",
+      "op": "btwn",
+      "value": "10|100"
+    }   
+  ]
+}
+
+# Ejemplo de construccion via api interna: and(status:eq:ACCP,amt:btwn:10|100)
+
+```
+
+
+
+### Estructura de Respuesta Devuelta al Frontend
+El backend consolida el resultado de la ejecución, permitiendo que la interfaz renderice tanto las métricas de inspección técnica como la respuesta original devuelta por SyPago:
+
+```
+{
+  "generated_condition": "and(status:eq:ACCP,or(amount:btwn:10|100,rejected_code:like:TKCM))",
+  "target_url": "https://pruebas.api.sypago.net/api/v1/transaction/filter?condition=and(status:eq:ACCP,or(amount:btwn:10|100,rejected_code:like:TKCM))",
+  "status_code": 200,
+  "latency_ms": 315,
+  "raw_response": [
+    {
+      "internal_id": "F0B86F773377",
+      "transaction_id": "A60427ED515C",
+      "status": "ACCP",
+      "amount": {
+        "pay_amt": 50,
+        "currency": "VES"
+      }
+    }
   ]
 }
 ```
 
+
+
 Gin Handler (filter_handler.go) recibe la petición y se la pasa al Service.
 
 QueryBuilder Service (query_builder.go) procesa el arreglo de reglas y construye el string codificado para el query param:
-and(status:eq:SUCCESS,amount:btwn:10|100)
+and(status:eq:ACCP,amount:btwn:10|100)
 
 Client Adapter (sypago_client.go) toma la string, le pega la URL base ([https://pruebas.api.sypago.net/api/v1/transaction/filter?condition=](https://pruebas.api.sypago.net/api/v1/transaction/filter?condition=)...), agrega las cabeceras de autorización (Bearer TOKEN) y mide el tiempo de respuesta (latencia).
 
