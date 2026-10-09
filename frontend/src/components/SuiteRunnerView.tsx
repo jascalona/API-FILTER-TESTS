@@ -13,7 +13,7 @@ const PRELOADED_GROUPS: TestGroup[] = [
     { id: 'ref_ibp', name: 'Grupo Ref IBP', description: 'Filtros por referencia IBP exacta y patrón ref_ibp_like', count: 3 },
     { id: 'amt', name: 'Grupo Montos (AMT)', description: 'Validación de operadores eq, btwn, lte, gte sobre montos', count: 4 },
     { id: 'users', name: 'Grupo Usuarios', description: 'Pruebas agrupadas sobre user_id y subuser_id', count: 2 },
-    { id: 'date_filter', name: 'Grupo Fechas', description: 'Validación sobre operation_date, date_comparation e init_transaction_date', count: 3 },
+    { id: 'date_filter', name: 'Grupo Fechas', description: 'Validación sobre operation_date y init_transaction_date', count: 3 },
 ];
 
 const DEFAULT_PARAMS: SuiteParams = {
@@ -35,7 +35,6 @@ const DEFAULT_PARAMS: SuiteParams = {
     group_id: '5F444F803A86',
     init_transaction_date: '2026-10-05 20:39:18',
     operation_date: '2026-10-08',
-    date_comparation: '2026-08-05 20:39:18|2026-10-10 20:39:18.112',
     number: '30221960',
     bank_code: '0108',
     account_number: '04129854529'
@@ -362,10 +361,6 @@ export const SuiteRunnerView: React.FC = () => {
                                     <div>
                                         <label className="block font-semibold text-slate-700 mb-1">operation_date</label>
                                         <input type="text" name="operation_date" value={formData.operation_date} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-semibold text-slate-700 mb-1">date_comparation</label>
-                                        <input type="text" name="date_comparation" value={formData.date_comparation} onChange={handleChange} className="w-full border border-slate-200 rounded-lg p-2 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none" />
                                     </div>
                                 </div>
                             </div>

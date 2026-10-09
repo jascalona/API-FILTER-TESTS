@@ -39,7 +39,6 @@ type SuiteParams struct {
 	GroupID             string `json:"group_id"`
 	InitTransactionDate string `json:"init_transaction_date"`
 	OperationDate       string `json:"operation_date"`
-	DateComparation     string `json:"date_comparation"`
 	NumberDocumentR     string `json:"number"`
 	BankCode            string `json:"bank_code"`
 	AccountNumber       string `json:"account_number"`
@@ -52,7 +51,7 @@ func (p *SuiteParams) ValidateParams() error {
 		p.RefIBPLike == "" || p.Amount == "" || p.AmountLike == "" ||
 		p.AmountLTE == "" || p.AmountGTE == "" || p.AmountBtwn == "" ||
 		p.UserID == "" || p.SubUserID == "" || p.InternalID == "" || p.GroupID == "" ||
-		p.InitTransactionDate == "" || p.OperationDate == "" || p.DateComparation == "" ||
+		p.InitTransactionDate == "" || p.OperationDate == "" ||
 		p.NumberDocumentR == "" || p.BankCode == "" || p.AccountNumber == "" {
 		return fmt.Errorf("faltan campos en el payload para aplicar los filtros en la suite de pruebas")
 	}
@@ -238,13 +237,6 @@ func (s *TestRunnerService) GetTestCases(params SuiteParams) []TestCaseDefinitio
 			Name:         "operation_date - GTE", //Mayor que la fechar cargada
 			Group:        "date_filter",
 			Condition:    fmt.Sprintf("and(operation_date:gte:%s)", params.OperationDate),
-			ExpectedCode: http.StatusOK,
-		},
-		{
-			ID:           "Filter-Date-Between-04",
-			Name:         "date_comparation - BTWN", //filtro entre fechas
-			Group:        "date_filter",
-			Condition:    fmt.Sprintf("and(date_comparation:btwn:%s)", params.DateComparation),
 			ExpectedCode: http.StatusOK,
 		},
 		//---- Test Case argument: number ----//
