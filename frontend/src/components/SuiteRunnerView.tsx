@@ -81,7 +81,8 @@ export const SuiteRunnerView: React.FC = () => {
         };
 
         try {
-            const res = await fetch('http://localhost:8050/api/v1/test-suites/run?group=' + currentGroup.id, {
+            // Usamos la ruta relativa para adaptar el puerto dinámico de la app
+            const res = await fetch('/api/v1/test-suites/run?group=' + currentGroup.id, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -133,9 +134,8 @@ export const SuiteRunnerView: React.FC = () => {
                         </div>
                         <div>
                             <span className="text-slate-400 block text-[10px] uppercase font-bold">Estado</span>
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                raw.status === 'ACCP' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${raw.status === 'ACCP' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
                                 {raw.status || 'N/A'} {raw.rejected_code ? `(${raw.rejected_code})` : ''}
                             </span>
                         </div>
@@ -497,9 +497,8 @@ export const SuiteRunnerView: React.FC = () => {
                                             <React.Fragment key={item.id}>
                                                 <tr
                                                     onClick={() => toggleRow(item.id)}
-                                                    className={`cursor-pointer transition-colors ${
-                                                        isExpanded ? 'bg-purple-50/50' : 'hover:bg-slate-50/80'
-                                                    }`}
+                                                    className={`cursor-pointer transition-colors ${isExpanded ? 'bg-purple-50/50' : 'hover:bg-slate-50/80'
+                                                        }`}
                                                 >
                                                     <td className="p-3 text-center text-slate-400 font-bold">
                                                         {isExpanded ? '▼' : '►'}

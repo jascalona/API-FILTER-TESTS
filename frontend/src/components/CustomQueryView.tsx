@@ -66,6 +66,7 @@ export const CustomQueryView: React.FC = () => {
     setRules((prev) => prev.map((r) => (r.id === id ? { ...r, [key]: val } : r)));
   };
 
+
   const handleFilter = async () => {
     setLoading(true);
     setError(null);
@@ -77,7 +78,8 @@ export const CustomQueryView: React.FC = () => {
     };
 
     try {
-      const res = await fetch('http://localhost:8050/api/v1/custom-filter', {
+      // Usamos la ruta relativa para apuntar al mismo puerto dinámico donde corre el binario
+      const res = await fetch('/api/v1/custom-filter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -85,10 +87,9 @@ export const CustomQueryView: React.FC = () => {
 
       const data = await res.json();
 
-      // Guardamos la respuesta siempre que el backend entregue el contrato estructurado
-      if (data && (data.generated_condition || data.raw_response)) {
+      if (data && (data.generated_condition || data.raw_response !== undefined)) {
         setResponse(data);
-      } else if (!res.ok) {
+      } else {
         throw new Error(data.message || data.error || 'Error de comunicación con el servidor');
       }
     } catch (err: any) {
@@ -263,7 +264,7 @@ export const CustomQueryView: React.FC = () => {
                 Respuesta devuelta por el entorno de SyPago
               </p>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-lg border border-purple-200 font-bold flex items-center gap-1">
                 <span className="text-[10px] text-purple-600 font-semibold uppercase">Encontrados:</span>
@@ -274,11 +275,10 @@ export const CustomQueryView: React.FC = () => {
                 {response.latency_ms} ms
               </span>
 
-              <span className={`text-xs px-2.5 py-1 rounded-lg border font-bold ${
-                response.status_code >= 200 && response.status_code < 300 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+              <span className={`text-xs px-2.5 py-1 rounded-lg border font-bold ${response.status_code >= 200 && response.status_code < 300
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-rose-50 text-rose-700 border-rose-200'
-              }`}>
+                }`}>
                 HTTP {response.status_code}
               </span>
             </div>
@@ -304,9 +304,8 @@ export const CustomQueryView: React.FC = () => {
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
               Payload de Respuesta (Raw Response)
             </h4>
-            <div className={`p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-80 ${
-              response.status_code >= 400 ? 'bg-slate-900 text-rose-300 border border-rose-950' : 'bg-slate-950 text-emerald-400'
-            }`}>
+            <div className={`p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-80 ${response.status_code >= 400 ? 'bg-slate-900 text-rose-300 border border-rose-950' : 'bg-slate-950 text-emerald-400'
+              }`}>
               <pre>{JSON.stringify(response.raw_response, null, 2)}</pre>
             </div>
           </div>
