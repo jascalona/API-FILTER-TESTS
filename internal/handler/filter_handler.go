@@ -179,15 +179,29 @@ func (h *FilterHandler) CustomFilterHandler(c *gin.Context) {
 
 	respBytes, _ := io.ReadAll(resp.Body)
 
-	// 7. Mapear respuesta cruda para la interfaz web / Postman
+	// 7. Mapear respuesta cruda para la interfaz web / Postman y calcular countTotal
 	var rawJSON json.RawMessage
+	countTotal := 0
+
 	if err := json.Unmarshal(respBytes, &rawJSON); err != nil {
 		rawJSON = json.RawMessage(fmt.Sprintf(`{"message": %q}`, string(respBytes)))
+	} else {
+		// Unmarshal hacia un slice de json.RawMessage para saber si vino un arreglo
+		var rawSlice []json.RawMessage
+		if err := json.Unmarshal(respBytes, &rawSlice); err == nil {
+			countTotal = len(rawSlice)
+		} else {
+			// Si la respuesta no es un slice pero fue exitosa (200), asumimos 1 registro
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				countTotal = 1
+			}
+		}
 	}
 
 	c.JSON(resp.StatusCode, gin.H{
 		"generated_condition": conditionStr,
 		"target_url":          finalURL,
+		"count_total":         countTotal,
 		"status_code":         resp.StatusCode,
 		"latency_ms":          latency,
 		"raw_response":        rawJSON,

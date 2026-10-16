@@ -1,34 +1,60 @@
-import React, { useState } from 'react';
-import { Rule, CustomFilterResponse } from '../api/filterApi';
+import React, { useState, useMemo } from 'react';
+
+export interface Rule {
+  id: string;
+  field: string;
+  op: string;
+  value: string;
+}
+
+export interface CustomFilterResponse {
+  generated_condition: string;
+  target_url: string;
+  count_total: number;
+  status_code: number;
+  latency_ms: number;
+  raw_response: any;
+}
 
 const AVAILABLE_FIELDS = [
   { value: 'status', label: 'Estado (status)' },
-  { value: 'amount', label: 'Monto (amount)' },
-  { value: 'transaction_id', label: 'ID Transacción' },
-  { value: 'reference', label: 'Referencia' },
+  { value: 'amt', label: 'Monto (amt)' },
+  { value: 'transaction_id', label: 'ID Transacción (transaction_id)' },
+  { value: 'rejected_code', label: 'Código Rechazo (rejected_code)' },
+  { value: 'ref_ibp', label: 'Referencia IBP (ref_ibp)' },
 ];
 
 const OPERATORS = [
   { value: 'eq', label: 'Igual (=)' },
   { value: 'btwn', label: 'Entre (btwn)' },
   { value: 'like', label: 'Contiene (like)' },
+  { value: 'lte', label: 'Menor o igual (lte)' },
+  { value: 'gte', label: 'Mayor o igual (gte)' },
 ];
 
 export const CustomQueryView: React.FC = () => {
-  const [logicalOperator, setLogicalOperator] = useState<'and' | 'or'>('and');
   const [rules, setRules] = useState<Rule[]>([
-    { id: '1', field: 'status', operator: 'eq', value: 'ACCP' },
-    { id: '2', field: 'amount', operator: 'btwn', value: '10|100' },
+    { id: '1', field: 'status', op: 'eq', value: 'ACCP' },
+    { id: '2', field: 'amt', op: 'btwn', value: '10|100' },
   ]);
 
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<CustomFilterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const liveConditionPreview = useMemo(() => {
+    const validRules = rules
+      .filter((r) => r.field && r.op && r.value.trim() !== '')
+      .map((r) => `${r.field}:${r.op}:${r.value}`);
+
+    if (validRules.length === 0) return '';
+    return `and(${validRules.join(',')})`;
+  }, [rules]);
+
   const handleAddRule = () => {
     setRules((prev) => [
       ...prev,
-      { id: Date.now().toString(), field: 'amount', operator: 'eq', value: '' },
+      { id: Date.now().toString(), field: 'amt', op: 'eq', value: '' },
     ]);
   };
 
@@ -43,143 +69,183 @@ export const CustomQueryView: React.FC = () => {
   const handleFilter = async () => {
     setLoading(true);
     setError(null);
+    setResponse(null);
 
     const payload = {
-      logical_operator: logicalOperator,
-      rules: rules.map(({ field, operator, value }) => ({ field, operator, value })),
+      operator: 'and',
+      children: rules.map(({ field, op, value }) => ({ field, op, value })),
     };
 
     try {
-      const res = await fetch('/api/v1/transaction/filter', {
+      const res = await fetch('http://localhost:8050/api/v1/custom-filter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al ejecutar filtro');
 
-      setResponse(data);
+      // Guardamos la respuesta siempre que el backend entregue el contrato estructurado
+      if (data && (data.generated_condition || data.raw_response)) {
+        setResponse(data);
+      } else if (!res.ok) {
+        throw new Error(data.message || data.error || 'Error de comunicación con el servidor');
+      }
     } catch (err: any) {
-      setError(err.message || 'Error al conectar con la API');
+      setError(err.message || 'Error al conectar con la API interna');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Tarjeta de Configuración de Filtros */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-        <div className="flex flex-wrap justify-between items-center gap-4 border-b border-slate-100 pb-4">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Header General */}
+      <div>
+        <h1 className="text-xl font-bold text-slate-800">Custom Request Builder</h1>
+        <p className="text-xs text-slate-500">
+          Construye y prueba filtros condicionales directos hacia la API de SyPago.
+        </p>
+      </div>
+
+      {/* Contenedor Principal */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* Sub-Header */}
+        <div className="p-5 bg-slate-50/50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Custom Request (Flujo X)</h2>
-            <p className="text-xs text-slate-500">
-              Construye reglas avanzadas para probar el codificador de query params en tiempo real.
+            <h2 className="text-sm font-bold text-slate-800">Constructor de Reglas (Flujo X)</h2>
+            <p className="text-[11px] text-slate-500">
+              Agrega N cantidad de reglas dinámicas para formar tu query condicional en tiempo real.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
-            <span className="text-xs font-semibold text-slate-500 px-2">Operador Lógico:</span>
-            <button
-              onClick={() => setLogicalOperator('and')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                logicalOperator === 'and'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              AND
-            </button>
-            <button
-              onClick={() => setLogicalOperator('or')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                logicalOperator === 'or'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              OR
-            </button>
+          <div className="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100">
+            <span className="text-[11px] font-extrabold text-purple-700 tracking-wider">
+              OPERADOR LÓGICO: AND
+            </span>
           </div>
         </div>
 
-        {/* Lista de Reglas Dinámicas */}
-        <div className="space-y-3">
-          {rules.map((rule) => (
-            <div key={rule.id} className="flex flex-wrap items-center gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
-              <div className="flex-1 min-w-[160px]">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Campo</label>
-                <select
-                  value={rule.field}
-                  onChange={(e) => handleRuleChange(rule.id, 'field', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {AVAILABLE_FIELDS.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="w-36">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Operador</label>
-                <select
-                  value={rule.operator}
-                  onChange={(e) => handleRuleChange(rule.id, 'operator', e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {OPERATORS.map((op) => (
-                    <option key={op.value} value={op.value}>{op.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex-1 min-w-[180px]">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Valor</label>
-                <input
-                  type="text"
-                  value={rule.value}
-                  onChange={(e) => handleRuleChange(rule.id, 'value', e.target.value)}
-                  placeholder="ej. 10|100 o ACCP"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {rules.length > 1 && (
-                <button
-                  onClick={() => handleRemoveRule(rule.id)}
-                  className="self-end mb-1 text-slate-400 hover:text-rose-600 p-1.5 transition-colors"
-                  title="Eliminar regla"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+        {/* Lista de Reglas Compacta */}
+        <div className="p-6 space-y-3">
+          {rules.map((rule, idx) => (
+            <React.Fragment key={rule.id}>
+              {idx > 0 && (
+                <div className="flex items-center gap-2 my-1">
+                  <div className="h-[1px] bg-slate-200 flex-1" />
+                  <span className="text-[10px] font-mono font-bold uppercase text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                    AND
+                  </span>
+                  <div className="h-[1px] bg-slate-200 flex-1" />
+                </div>
               )}
-            </div>
+
+              <div className="group bg-slate-50/80 hover:bg-white hover:border-purple-300 p-3 rounded-xl border border-slate-200/80 transition-all shadow-none hover:shadow-sm grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                <div className="md:col-span-4">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Campo
+                  </label>
+                  <select
+                    value={rule.field}
+                    onChange={(e) => handleRuleChange(rule.id, 'field', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {AVAILABLE_FIELDS.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Operador
+                  </label>
+                  <select
+                    value={rule.op}
+                    onChange={(e) => handleRuleChange(rule.id, 'op', e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {OPERATORS.map((op) => (
+                      <option key={op.value} value={op.value}>
+                        {op.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-4">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Valor
+                  </label>
+                  <input
+                    type="text"
+                    value={rule.value}
+                    onChange={(e) => handleRuleChange(rule.id, 'value', e.target.value)}
+                    placeholder="Ej. ACCP o 10|100"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="md:col-span-1 flex justify-center pt-3 md:pt-4">
+                  {rules.length > 1 && (
+                    <button
+                      onClick={() => handleRemoveRule(rule.id)}
+                      className="text-slate-400 hover:text-rose-600 p-1.5 transition-colors rounded-lg hover:bg-rose-50"
+                      title="Eliminar regla"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </React.Fragment>
           ))}
         </div>
 
-        {/* Acciones */}
-        <div className="flex justify-between items-center pt-2">
+        {/* Previsualización en Tiempo Real */}
+        <div className="mx-6 p-3 bg-slate-900 rounded-xl flex items-center justify-between gap-3 text-xs font-mono text-emerald-400 border border-slate-800">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <svg className="w-4 h-4 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+            <span className="text-slate-400 font-sans text-[11px]">Sintaxis:</span>
+            <span className="truncate">{liveConditionPreview || '...'}</span>
+          </div>
+          <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-sans flex-shrink-0">
+            {rules.length} Regla(s)
+          </span>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-100 flex justify-between items-center bg-slate-50/30">
           <button
             onClick={handleAddRule}
-            className="text-xs font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1 bg-purple-50 px-3 py-2 rounded-xl transition-colors"
+            className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-xl transition-all border border-purple-200/60 shadow-sm"
           >
-            + Agregar Regla
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar Regla
           </button>
 
           <button
             onClick={handleFilter}
             disabled={loading}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-6 py-2.5 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
           >
-            {loading ? 'Procesando Query...' : '🔍 Filtrar'}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {loading ? 'Enviando Query...' : 'Filtrar'}
           </button>
         </div>
       </div>
 
-      {/* Alerta de Error */}
+      {/* Banner de Error Crítico (Red / Conectividad) */}
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-2xl text-xs font-medium flex justify-between items-center">
           <span><strong>Error:</strong> {error}</span>
@@ -187,61 +253,62 @@ export const CustomQueryView: React.FC = () => {
         </div>
       )}
 
-      {/* Tarjeta de Metadatos y Resultados */}
+      {/* Resultados / Errores de la API SyPago */}
       {response && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Condición Generada</span>
-              <code className="text-xs font-mono font-bold text-purple-700 break-all mt-1 block">
-                {response.condition_generated || 'N/A'}
-              </code>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 animate-in fade-in">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Resultado del Filtro</h3>
+              <p className="text-xs text-slate-500">
+                Respuesta devuelta por el entorno de SyPago
+              </p>
             </div>
-
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Código HTTP</span>
-              <span className={`text-sm font-bold mt-1 inline-block ${response.status_code === 200 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {response.status_code}
+            
+            <div className="flex items-center gap-2">
+              <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-lg border border-purple-200 font-bold flex items-center gap-1">
+                <span className="text-[10px] text-purple-600 font-semibold uppercase">Encontrados:</span>
+                {response.count_total ?? 0}
               </span>
-            </div>
 
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Latencia</span>
-              <span className="text-sm font-bold text-slate-800 mt-1 inline-block">
+              <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-200 font-mono">
                 {response.latency_ms} ms
+              </span>
+
+              <span className={`text-xs px-2.5 py-1 rounded-lg border font-bold ${
+                response.status_code >= 200 && response.status_code < 300 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}>
+                HTTP {response.status_code}
               </span>
             </div>
           </div>
 
-          {/* Tabla de Petición SyPago */}
+          {/* Banner con descripción del error devuelto por la API */}
+          {response.status_code >= 400 && response.raw_response?.message && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+              <span className="font-mono font-bold bg-rose-200 px-2 py-0.5 rounded text-[10px]">
+                {response.raw_response.code || 'ERROR'}
+              </span>
+              <span>{response.raw_response.message}</span>
+            </div>
+          )}
+
+          {response.target_url && (
+            <div className="p-3 bg-slate-900 rounded-xl font-mono text-xs text-emerald-400 break-all">
+              <span className="text-purple-400 font-bold">TARGET URL:</span> {response.target_url}
+            </div>
+          )}
+
           <div>
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Payload de Respuesta SyPago</h3>
-            {Array.isArray(response.raw_response) && response.raw_response.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left text-xs text-slate-600">
-                  <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 uppercase text-[10px]">
-                    <tr>
-                      {Object.keys(response.raw_response[0]).map((key) => (
-                        <th key={key} className="p-3">{key}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {response.raw_response.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/80">
-                        {Object.values(row).map((val: any, i) => (
-                          <td key={i} className="p-3 font-mono">{String(val)}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="bg-slate-950 p-4 rounded-xl text-emerald-400 font-mono text-xs overflow-x-auto max-h-60">
-                <pre>{JSON.stringify(response.raw_response, null, 2)}</pre>
-              </div>
-            )}
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Payload de Respuesta (Raw Response)
+            </h4>
+            <div className={`p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-80 ${
+              response.status_code >= 400 ? 'bg-slate-900 text-rose-300 border border-rose-950' : 'bg-slate-950 text-emerald-400'
+            }`}>
+              <pre>{JSON.stringify(response.raw_response, null, 2)}</pre>
+            </div>
           </div>
         </div>
       )}
